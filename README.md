@@ -182,6 +182,8 @@ Updates an existing issue.
   status?: string;      // Optional: New status
   assigneeId?: string;  // Optional: New assignee ID
   priority?: number;    // Optional: New priority (0-4)
+  labels?: string[];   // Optional: Label IDs to apply to the issue
+  labels?: string[];   // Optional: Label IDs to apply to the issue
 }
 ```
 
