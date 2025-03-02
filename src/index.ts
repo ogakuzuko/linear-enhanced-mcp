@@ -241,6 +241,7 @@ type UpdateIssueArgs = {
   status?: string;
   assigneeId?: string;
   priority?: number;
+  labels?: string[];
 };
 
 type ListProjectsArgs = {
@@ -338,6 +339,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           description: args.description,
           stateId: args.status,
           assigneeId: args.assigneeId,
+          labelIds: args.labels,
           priority: args.priority,
         });
 
