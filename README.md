@@ -2,6 +2,8 @@
 
 > Note: This is a custom implementation. For the official Cline Linear MCP server, see [cline/linear-mcp](https://github.com/cline/linear-mcp).
 
+> **Fork Information**: This repository is a fork of [@ibraheem4/linear-mcp](https://github.com/ibraheem4/linear-mcp). texmeijin has extended it based on practical work experience, adding features such as label management to enable more flexible and detailed operations. While maintaining the original functionality, additional features have been added to make daily task management more efficient.
+
 <a href="https://glama.ai/mcp/servers/71fqw0uqmx"> <img width="380" height="200" src="https://glama.ai/mcp/servers/71fqw0uqmx/badge" />
 
 A Model Context Protocol (MCP) server that provides tools for interacting with Linear's API, enabling AI agents to manage issues, projects, and teams programmatically through the Linear platform.
@@ -23,6 +25,11 @@ A Model Context Protocol (MCP) server that provides tools for interacting with L
   - List all projects with optional team filtering
   - View project details including name, description, state, and associated teams
 
+- **Label Management**
+  - List all labels associated with a team
+  - Create new labels with custom name, color, and description
+  - Update existing labels to modify their properties
+
 ## Prerequisites
 
 - Node.js (v16 or higher)
@@ -33,18 +40,23 @@ A Model Context Protocol (MCP) server that provides tools for interacting with L
 
 1. Get your Linear API key from [Linear's Developer Settings](https://linear.app/settings/api)
 
-2. Run with your API key:
+2. Clone the repository and build it locally:
 
 ```bash
-LINEAR_API_KEY=your-api-key npx @ibraheem4/linear-mcp
+git clone https://github.com/texmeijin/linear-enhanced-mcp.git
+cd linear-enhanced-mcp
+npm install
+npm run build
 ```
 
-Or set it in your environment:
+3. Run with your API key:
 
 ```bash
-export LINEAR_API_KEY=your-api-key
-npx @ibraheem4/linear-mcp
+export LINEAR_API_KEY=your-api-key-here
+node build/index.js
 ```
+
+Note: NPX installation is planned for future releases.
 
 ## Development Setup
 
@@ -71,17 +83,16 @@ npm run build
 
 For local development and debugging, you can use the MCP Inspector:
 
-1. Install supergateway:
+1. Install the MCP Inspector:
 
 ```bash
-npm install -g supergateway
+npm install -g @modelcontextprotocol/inspector
 ```
 
-2. Use the included `run.sh` script:
+2. Run the server with the inspector:
 
 ```bash
-chmod +x run.sh
-LINEAR_API_KEY=your-api-key ./run.sh
+LINEAR_API_KEY=your-api-key-here npx @modelcontextprotocol/inspector node build/index.js
 ```
 
 3. Access the Inspector:
@@ -101,9 +112,9 @@ Configure the MCP server in your settings file based on your client:
 ```json
 {
   "mcpServers": {
-    "linear-mcp": {
+    "linear-enhanced-mcp": {
       "command": "node",
-      "args": ["/path/to/linear-mcp/build/index.js"],
+      "args": ["/path/to/linear-enhanced-mcp/build/index.js"],
       "env": {
         "LINEAR_API_KEY": "your-api-key-here"
       },
@@ -121,9 +132,9 @@ Location: `~/Library/Application Support/Code/User/globalStorage/rooveterinaryin
 ```json
 {
   "mcpServers": {
-    "linear-mcp": {
+    "linear-enhanced-mcp": {
       "command": "node",
-      "args": ["/path/to/linear-mcp/build/index.js"],
+      "args": ["/path/to/linear-enhanced-mcp/build/index.js"],
       "env": {
         "LINEAR_API_KEY": "your-api-key-here"
       },
@@ -139,7 +150,7 @@ Location: `~/Library/Application Support/Code/User/globalStorage/rooveterinaryin
 For Cursor, the server must be run with the full path:
 
 ```bash
-node /Users/ibraheem/Projects/linear-mcp/build/index.js
+node /path/to/linear-enhanced-mcp/build/index.js
 ```
 
 ## Available Tools
@@ -185,6 +196,42 @@ Updates an existing issue.
   assigneeId?: string;  // Optional: New assignee ID
   priority?: number;    // Optional: New priority (0-4)
   labels?: string[];   // Optional: Label IDs to apply to the issue
+}
+```
+
+### list_labels
+
+Lists all labels associated with a team.
+
+```typescript
+{
+  teamId: string;      // Required: Team ID
+}
+```
+
+### create_label
+
+Creates a new label for a team.
+
+```typescript
+{
+  teamId: string;      // Required: Team ID
+  name: string;        // Required: Label name
+  color: string;       // Required: Label color (hex color code)
+  description?: string; // Optional: Label description
+}
+```
+
+### update_label
+
+Updates an existing label.
+
+```typescript
+{
+  id: string;          // Required: Label ID
+  name?: string;       // Optional: New label name
+  color?: string;      // Optional: New color (hex color code)
+  description?: string; // Optional: New description
 }
 ```
 

@@ -18,8 +18,11 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { LinearClient } from "@linear/sdk";
+import { isSetIterator } from "util/types";
 
 const API_KEY = process.env.LINEAR_API_KEY || process.env.LINEARAPIKEY;
+const TEAM_NAME = process.env.LINEAR_TEAM_NAME || process.env.LINEARTEAMNAME;
+
 if (!API_KEY) {
   console.error("Error: LINEAR_API_KEY environment variable is required");
   console.error("");
@@ -29,11 +32,39 @@ if (!API_KEY) {
   console.error("Or set it in your environment:");
   console.error("export LINEAR_API_KEY=your-api-key");
   console.error("npx @ibraheem4/linear-mcp");
+  console.error("");
+  console.error("Optional: Set LINEAR_TEAM_NAME to prefix tools with a team name");
+  console.error("LINEAR_TEAM_NAME=your-team-name LINEAR_API_KEY=your-api-key npx @ibraheem4/linear-mcp");
   process.exit(1);
+}
+
+// チーム名が設定されている場合は、そのことを表示
+if (TEAM_NAME) {
+  console.error(`Team name set to "${TEAM_NAME}". Tools will be prefixed with this name.`);
 }
 
 const linearClient = new LinearClient({
   apiKey: API_KEY,
+});
+
+// ツール名にチーム名を追加するヘルパー関数
+const addTeamNameToToolName = (name: string): string => {
+  return TEAM_NAME ? `${TEAM_NAME}_${name}` : name;
+};
+
+// ツール名の正規化（チーム名プレフィックスを削除）
+const normalizeToolName = (toolName: string): string => {
+  if (TEAM_NAME && toolName.startsWith(`${TEAM_NAME}_`)) {
+    return toolName.substring(TEAM_NAME.length + 1);
+  }
+  return toolName;
+};
+
+// capabilitiesを動的に生成
+const toolsCapabilities: Record<string, boolean> = {};
+const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label"];
+baseTools.forEach(tool => {
+  toolsCapabilities[addTeamNameToToolName(tool)] = true;
 });
 
 const server = new Server(
@@ -43,180 +74,252 @@ const server = new Server(
   },
   {
     capabilities: {
-      tools: {
-        create_issue: true,
-        list_issues: true,
-        update_issue: true,
-        list_teams: true,
-        list_projects: true,
-        search_issues: true,
-        get_issue: true,
-      },
+      tools: toolsCapabilities,
     },
   }
 );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    {
-      name: "create_issue",
-      description: "Create a new issue in Linear",
-      inputSchema: {
-        type: "object",
-        properties: {
-          title: {
-            type: "string",
-            description: "Issue title",
-          },
-          description: {
-            type: "string",
-            description: "Issue description (markdown supported)",
-          },
-          teamId: {
-            type: "string",
-            description: "Team ID",
-          },
-          assigneeId: {
-            type: "string",
-            description: "Assignee user ID (optional)",
-          },
-          priority: {
-            type: "number",
-            description: "Priority (0-4, optional)",
-            minimum: 0,
-            maximum: 4,
-          },
-          labels: {
-            type: "array",
-            items: {
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  // 名前と説明にチーム名を追加するヘルパー関数
+  const addTeamNameToString = (str: string): string => {
+    return TEAM_NAME ? `${TEAM_NAME}専用: ${str}` : str;
+  };
+
+  return {
+    tools: [
+      {
+        name: addTeamNameToToolName("create_issue"),
+        description: addTeamNameToString("Create a new issue in Linear"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: {
               type: "string",
+              description: "Issue title",
             },
-            description: "Label IDs to apply (optional)",
+            description: {
+              type: "string",
+              description: "Issue description (markdown supported)",
+            },
+            teamId: {
+              type: "string",
+              description: "Team ID",
+            },
+            assigneeId: {
+              type: "string",
+              description: "Assignee user ID (optional)",
+            },
+            priority: {
+              type: "number",
+              description: "Priority (0-4, optional)",
+              minimum: 0,
+              maximum: 4,
+            },
+            labels: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              description: "Label IDs to apply (optional)",
+            },
           },
+          required: ["title", "teamId"],
         },
-        required: ["title", "teamId"],
       },
-    },
-    {
-      name: "list_issues",
-      description: "List issues with optional filters",
-      inputSchema: {
-        type: "object",
-        properties: {
-          teamId: {
-            type: "string",
-            description: "Filter by team ID (optional)",
-          },
-          assigneeId: {
-            type: "string",
-            description: "Filter by assignee ID (optional)",
-          },
-          status: {
-            type: "string",
-            description: "Filter by status (optional)",
-          },
-          first: {
-            type: "number",
-            description: "Number of issues to return (default: 50)",
-          },
-        },
-      },
-    },
-    {
-      name: "update_issue",
-      description: "Update an existing issue",
-      inputSchema: {
-        type: "object",
-        properties: {
-          issueId: {
-            type: "string",
-            description: "Issue ID",
-          },
-          title: {
-            type: "string",
-            description: "New title (optional)",
-          },
-          description: {
-            type: "string",
-            description: "New description (optional)",
-          },
-          status: {
-            type: "string",
-            description: "New status (optional)",
-          },
-          assigneeId: {
-            type: "string",
-            description: "New assignee ID (optional)",
-          },
-          priority: {
-            type: "number",
-            description: "New priority (0-4, optional)",
-            minimum: 0,
-            maximum: 4,
-          },
-        },
-        required: ["issueId"],
-      },
-    },
-    {
-      name: "list_teams",
-      description: "List all teams in the workspace",
-      inputSchema: {
-        type: "object",
-        properties: {},
-      },
-    },
-    {
-      name: "list_projects",
-      description: "List all projects",
-      inputSchema: {
-        type: "object",
-        properties: {
-          teamId: {
-            type: "string",
-            description: "Filter by team ID (optional)",
-          },
-          first: {
-            type: "number",
-            description: "Number of projects to return (default: 50)",
+      {
+        name: addTeamNameToToolName("list_issues"),
+        description: addTeamNameToString("List issues with optional filters"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            teamId: {
+              type: "string",
+              description: "Filter by team ID (optional)",
+            },
+            assigneeId: {
+              type: "string",
+              description: "Filter by assignee ID (optional)",
+            },
+            status: {
+              type: "string",
+              description: "Filter by status (optional)",
+            },
+            first: {
+              type: "number",
+              description: "Number of issues to return (default: 50)",
+            },
           },
         },
       },
-    },
-    {
-      name: "search_issues",
-      description: "Search for issues using a text query",
-      inputSchema: {
-        type: "object",
-        properties: {
-          query: {
-            type: "string",
-            description: "Search query text",
+      {
+        name: addTeamNameToToolName("update_issue"),
+        description: addTeamNameToString("Update an existing issue"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            issueId: {
+              type: "string",
+              description: "Issue ID",
+            },
+            title: {
+              type: "string",
+              description: "New title (optional)",
+            },
+            description: {
+              type: "string",
+              description: "New description (optional)",
+            },
+            status: {
+              type: "string",
+              description: "New status (optional)",
+            },
+            assigneeId: {
+              type: "string",
+              description: "New assignee ID (optional)",
+            },
+            priority: {
+              type: "number",
+              description: "New priority (0-4, optional)",
+              minimum: 0,
+              maximum: 4,
+            },
+            labels: {
+              type: "array",
+              items: {
+                type: "string"
+              },
+              description: "ラベルIDの配列（オプション）、指定したラベルで置き換えられます",
+            },
           },
-          first: {
-            type: "number",
-            description: "Number of results to return (default: 50)",
+          required: ["issueId"],
+        },
+      },
+      {
+        name: addTeamNameToToolName("list_teams"),
+        description: addTeamNameToString("List all teams in the workspace"),
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: addTeamNameToToolName("list_projects"),
+        description: addTeamNameToString("List all projects"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            teamId: {
+              type: "string",
+              description: "Filter by team ID (optional)",
+            },
+            first: {
+              type: "number",
+              description: "Number of projects to return (default: 50)",
+            },
           },
         },
-        required: ["query"],
       },
-    },
-    {
-      name: "get_issue",
-      description: "Get detailed information about a specific issue",
-      inputSchema: {
-        type: "object",
-        properties: {
-          issueId: {
-            type: "string",
-            description: "Issue ID",
+      {
+        name: addTeamNameToToolName("search_issues"),
+        description: addTeamNameToString("Search for issues using a text query"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Search query text",
+            },
+            first: {
+              type: "number",
+              description: "Number of results to return (default: 50)",
+            },
           },
+          required: ["query"],
         },
-        required: ["issueId"],
       },
-    },
-  ],
-}));
+      {
+        name: addTeamNameToToolName("get_issue"),
+        description: addTeamNameToString("Get detailed information about a specific issue"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            issueId: {
+              type: "string",
+              description: "Issue ID",
+            },
+          },
+          required: ["issueId"],
+        },
+      },
+      {
+        name: addTeamNameToToolName("list_labels"),
+        description: addTeamNameToString("チームに紐づくラベルの一覧を取得"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            teamId: {
+              type: "string",
+              description: "Team ID",
+            },
+          },
+          required: ["teamId"],
+        },
+      },
+      {
+        name: addTeamNameToToolName("create_label"),
+        description: addTeamNameToString("新しいラベルを作成"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            teamId: {
+              type: "string",
+              description: "Team ID",
+            },
+            name: {
+              type: "string",
+              description: "ラベルの名前",
+            },
+            color: {
+              type: "string",
+              description: "ラベルの色（16進数カラーコード）",
+            },
+            description: {
+              type: "string",
+              description: "ラベルの説明（オプション）",
+            },
+          },
+          required: ["teamId", "name", "color"],
+        },
+      },
+      {
+        name: addTeamNameToToolName("update_label"),
+        description: addTeamNameToString("既存のラベルを編集"),
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "ラベルID",
+            },
+            name: {
+              type: "string",
+              description: "新しいラベル名（オプション）",
+            },
+            color: {
+              type: "string",
+              description: "新しい色（16進数カラーコード、オプション）",
+            },
+            description: {
+              type: "string",
+              description: "新しい説明（オプション）",
+            },
+          },
+          required: ["id"],
+        },
+      },
+    ],
+  };
+});
 
 type CreateIssueArgs = {
   title: string;
@@ -258,9 +361,29 @@ type GetIssueArgs = {
   issueId: string;
 };
 
+type ListLabelsArgs = {
+  teamId: string;
+};
+
+type CreateLabelArgs = {
+  teamId: string;
+  name: string;
+  color: string;
+  description?: string;
+};
+
+type UpdateLabelArgs = {
+  id: string;
+  name?: string;
+  color?: string;
+  description?: string;
+};
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
-    switch (request.params.name) {
+    const toolName = normalizeToolName(request.params.name);
+
+    switch (toolName) {
       case "create_issue": {
         const args = request.params.arguments as unknown as CreateIssueArgs;
         if (!args?.title || !args?.teamId) {
@@ -309,6 +432,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               assignee: assignee ? assignee.name : "Unassigned",
               priority: issue.priority,
               url: issue.url,
+              statusUUID: state ? await state.id : null,
             };
           })
         );
@@ -430,6 +554,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               priority: result.priority,
               url: result.url,
               metadata: result.metadata,
+              statusUUID: state ? await state.id : null,
             };
           })
         );
@@ -488,6 +613,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             priority: number;
             priorityLabel: string;
             status: string;
+            statusUUID: string | null;
             url: string;
             createdAt: Date;
             updatedAt: Date;
@@ -521,6 +647,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             priority: issue.priority,
             priorityLabel: issue.priorityLabel,
             status: state ? await state.name : "Unknown",
+            statusUUID: state ? await state.id : null,
             url: issue.url,
             createdAt: issue.createdAt,
             updatedAt: issue.updatedAt,
@@ -530,46 +657,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             dueDate: issue.dueDate,
             assignee: assignee
               ? {
-                  id: assignee.id,
-                  name: assignee.name,
-                  email: assignee.email,
-                }
+                id: assignee.id,
+                name: assignee.name,
+                email: assignee.email,
+              }
               : null,
             creator: creator
               ? {
-                  id: creator.id,
-                  name: creator.name,
-                  email: creator.email,
-                }
+                id: creator.id,
+                name: creator.name,
+                email: creator.email,
+              }
               : null,
             team: team
               ? {
-                  id: team.id,
-                  name: team.name,
-                  key: team.key,
-                }
+                id: team.id,
+                name: team.name,
+                key: team.key,
+              }
               : null,
             project: project
               ? {
-                  id: project.id,
-                  name: project.name,
-                  state: project.state,
-                }
+                id: project.id,
+                name: project.name,
+                state: project.state,
+              }
               : null,
             parent: parent
               ? {
-                  id: parent.id,
-                  title: parent.title,
-                  identifier: parent.identifier,
-                }
+                id: parent.id,
+                title: parent.title,
+                identifier: parent.identifier,
+              }
               : null,
             cycle:
               cycle && cycle.name
                 ? {
-                    id: cycle.id,
-                    name: cycle.name,
-                    number: cycle.number,
-                  }
+                  id: cycle.id,
+                  name: cycle.name,
+                  number: cycle.number,
+                }
                 : null,
             labels: await Promise.all(
               labels.nodes.map(async (label: any) => ({
@@ -644,10 +771,92 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
       }
 
+      case "list_labels": {
+        const args = request.params.arguments as unknown as ListLabelsArgs;
+        if (!args?.teamId) {
+          throw new Error("Team ID is required");
+        }
+
+        const team = await linearClient.team(args.teamId);
+        if (!team) {
+          throw new Error(`Team ${args.teamId} not found`);
+        }
+
+        const labels = await team.labels();
+
+        const formattedLabels = labels.nodes.map((label) => ({
+          id: label.id,
+          name: label.name,
+          color: label.color,
+          description: label.description,
+          createdAt: label.createdAt,
+          updatedAt: label.updatedAt,
+        }));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(formattedLabels, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "create_label": {
+        const args = request.params.arguments as unknown as CreateLabelArgs;
+        if (!args?.teamId || !args?.name || !args?.color) {
+          throw new Error("Team ID, name, and color are required");
+        }
+
+        const label = await linearClient.createIssueLabel({
+          teamId: args.teamId,
+          name: args.name,
+          color: args.color,
+          description: args.description,
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(label, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "update_label": {
+        const args = request.params.arguments as unknown as UpdateLabelArgs;
+        if (!args?.id) {
+          throw new Error("Label ID is required");
+        }
+
+        const label = await linearClient.issueLabel(args.id);
+        if (!label) {
+          throw new Error(`Label ${args.id} not found`);
+        }
+
+        const updatedLabel = await label.update({
+          name: args.name,
+          color: args.color,
+          description: args.description,
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(updatedLabel, null, 2),
+            },
+          ],
+        };
+      }
+
       default:
         throw new McpError(
           ErrorCode.MethodNotFound,
-          `Unknown tool: ${request.params.name}`
+          `Unknown tool: ${request.params.name}, ${toolName}`
         );
     }
   } catch (error: any) {
