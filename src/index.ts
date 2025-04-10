@@ -122,6 +122,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               },
               description: "Label IDs to apply (optional)",
             },
+            parentId: {
+              type: "string",
+              description: "Parent issue ID (optional)",
+            },
           },
           required: ["title", "teamId"],
         },
@@ -189,6 +193,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 type: "string"
               },
               description: "ラベルIDの配列（オプション）、指定したラベルで置き換えられます",
+            },
+            parentId: {
+              type: "string",
+              description: "親のIssue ID (optional)",
             },
           },
           required: ["issueId"],
@@ -328,6 +336,7 @@ type CreateIssueArgs = {
   assigneeId?: string;
   priority?: number;
   labels?: string[];
+  parentId?: string;
 };
 
 type ListIssuesArgs = {
@@ -345,6 +354,7 @@ type UpdateIssueArgs = {
   assigneeId?: string;
   priority?: number;
   labels?: string[];
+  parentId?: string;
 };
 
 type ListProjectsArgs = {
@@ -397,6 +407,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           assigneeId: args.assigneeId,
           priority: args.priority,
           labelIds: args.labels,
+          parentId: args.parentId,
         });
 
         return {
@@ -465,6 +476,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           assigneeId: args.assigneeId,
           labelIds: args.labels,
           priority: args.priority,
+          parentId: args.parentId,
         });
 
         return {
