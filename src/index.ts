@@ -604,6 +604,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             labels,
             comments,
             attachments,
+            relations,
           ] = await Promise.all([
             issue.state,
             issue.assignee,
@@ -615,6 +616,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             issue.labels(),
             issue.comments(),
             issue.attachments(),
+            issue.relations(),
           ]);
 
           const issueDetails: {
@@ -651,6 +653,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             autoArchivedAt: Date | null;
             autoClosedAt: Date | null;
             trashed: boolean;
+            relations: Array<{ id: string; type: string; issue: { id: string; title: string } }>;
           } = {
             id: issue.id,
             identifier: issue.identifier,
@@ -740,6 +743,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             autoArchivedAt: issue.autoArchivedAt || null,
             autoClosedAt: issue.autoClosedAt || null,
             trashed: issue.trashed || false,
+            relations: relations.nodes.map((relation: any) => ({
+              id: relation.id,
+              type: relation.type,
+              issue: {
+                id: relation.issue.id,
+                title: relation.issue.title,
+              }
+            })),
           };
 
           // Extract embedded images from description
@@ -758,14 +769,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           // Add image analysis for attachments if they are images
           issueDetails.attachments = await Promise.all(
             attachments.nodes
-              .filter((attachment: any) =>
-                attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-              )
               .map(async (attachment: any) => ({
                 id: attachment.id,
                 title: attachment.title,
                 url: attachment.url,
-                analysis: "Image analysis would go here", // Replace with actual image analysis if available
               }))
           );
 
