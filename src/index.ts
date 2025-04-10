@@ -1,24 +1,23 @@
 #!/usr/bin/env node
 
+import { config } from "dotenv";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { config } from "dotenv";
 
 // Load .env file from the project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, "..", ".env") });
 
+import { LinearClient } from "@linear/sdk";
+import { ProjectFilter } from "@linear/sdk/dist/_generated_documents";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { Request } from "@modelcontextprotocol/sdk/types.js";
 import {
   CallToolRequestSchema,
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
-import { LinearClient } from "@linear/sdk";
-import { isSetIterator } from "util/types";
 
 const API_KEY = process.env.LINEAR_API_KEY || process.env.LINEARAPIKEY;
 const TEAM_NAME = process.env.LINEAR_TEAM_NAME || process.env.LINEARTEAMNAME;
@@ -198,6 +197,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description: "親のIssue ID (optional)",
             },
+            projectId: {
+              type: "string",
+              description: "Project ID (optional)",
+            },
           },
           required: ["issueId"],
         },
@@ -355,6 +358,7 @@ type UpdateIssueArgs = {
   priority?: number;
   labels?: string[];
   parentId?: string;
+  projectId?: string;
 };
 
 type ListProjectsArgs = {
@@ -477,6 +481,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           labelIds: args.labels,
           priority: args.priority,
           parentId: args.parentId,
+          projectId: args.projectId,
         });
 
         return {
@@ -512,8 +517,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "list_projects": {
         const args = request.params.arguments as unknown as ListProjectsArgs;
-        const filter: Record<string, any> = {};
-        if (args?.teamId) filter.team = { id: { eq: args.teamId } };
+        const filter: ProjectFilter = {};
+        if (args?.teamId) filter.accessibleTeams = { id: { eq: args.teamId } };
 
         const query = await linearClient.projects({
           first: args?.first ?? 50,
@@ -521,15 +526,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
 
         const projects = await Promise.all(
-          (query as any).nodes.map(async (project: any) => {
-            const teamsConnection = await project.teams;
-            const teams = teamsConnection ? (teamsConnection as any).nodes : [];
+          query.nodes.map(async (project) => {
             return {
               id: project.id,
               name: project.name,
               description: project.description,
               state: project.state,
-              teamIds: teams.map((team: any) => team.id),
             };
           })
         );
