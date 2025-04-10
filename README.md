@@ -95,10 +95,7 @@ npm install -g @modelcontextprotocol/inspector
 LINEAR_API_KEY=your-api-key-here npx @modelcontextprotocol/inspector node build/index.js
 ```
 
-3. Access the Inspector:
-   - Open [localhost:1337](http://localhost:1337) in your browser
-   - The Inspector connects via Server-Sent Events (SSE)
-   - Test and debug tool calls through the Inspector interface
+3. Access the Inspector
 
 ## Configuration
 
@@ -167,6 +164,7 @@ Creates a new issue in Linear.
   assigneeId?: string;   // Optional: Assignee user ID
   priority?: number;     // Optional: Priority (0-4)
   labels?: string[];     // Optional: Label IDs to apply
+  parentId?: string;     // Optional: Parent issue ID
 }
 ```
 
@@ -196,6 +194,7 @@ Updates an existing issue.
   assigneeId?: string;  // Optional: New assignee ID
   priority?: number;    // Optional: New priority (0-4)
   labels?: string[];   // Optional: Label IDs to apply to the issue
+  parentId?: string;   // Optional: Parent issue ID
 }
 ```
 
