@@ -4,6 +4,25 @@
 
 > **Fork Information**: This repository is a fork of [@ibraheem4/linear-mcp](https://github.com/ibraheem4/linear-mcp). texmeijin has extended it based on practical work experience, adding features such as label management to enable more flexible and detailed operations. While maintaining the original functionality, additional features have been added to make daily task management more efficient.
 
+## Added Features (include WIP🚧)
+
+- enhancement of label management:
+  - create label
+  - update label
+  - delete label
+  - get label
+  - list labels
+  - list issues with label
+- enhancement of issue management with parentId:
+  - create issue with parentId
+  - update issue with parentId
+  - delete issue with parentId
+  - get issue with parentId
+  - list issues with parentId
+  - list issues with parentId
+
+---
+
 <a href="https://glama.ai/mcp/servers/71fqw0uqmx"> <img width="380" height="200" src="https://glama.ai/mcp/servers/71fqw0uqmx/badge" />
 
 A Model Context Protocol (MCP) server that provides tools for interacting with Linear's API, enabling AI agents to manage issues, projects, and teams programmatically through the Linear platform.
