@@ -171,7 +171,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             labels: {
               type: "array",
               items: {
-                type: "string"
+                type: "string",
               },
               description: "ラベルIDの配列（オプション）、指定したラベルで置き換えられます",
             },
@@ -319,9 +319,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             teamId: {
               type: "string",
               description: "チームID",
-            }
+            },
           },
-          required: ["teamId"]
+          required: ["teamId"],
         },
       },
       {
@@ -333,9 +333,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             teamId: {
               type: "string",
               description: "チームID",
-            }
+            },
           },
-          required: ["teamId"]
+          required: ["teamId"],
         },
       },
       {
@@ -699,7 +699,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             autoArchivedAt: Date | null;
             autoClosedAt: Date | null;
             trashed: boolean;
-            relations: Array<{ id: string; type: string; issue: { id: string; title: string } }>;
+            relations: Array<{
+              id: string;
+              type: string;
+              issue: { id: string; title: string };
+            }>;
           } = {
             id: issue.id,
             identifier: issue.identifier,
@@ -795,7 +799,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               issue: {
                 id: relation.issue.id,
                 title: relation.issue.title,
-              }
+              },
             })),
           };
 
@@ -814,12 +818,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
           // Add image analysis for attachments if they are images
           issueDetails.attachments = await Promise.all(
-            attachments.nodes
-              .map(async (attachment: any) => ({
-                id: attachment.id,
-                title: attachment.title,
-                url: attachment.url,
-              }))
+            attachments.nodes.map(async (attachment: any) => ({
+              id: attachment.id,
+              title: attachment.title,
+              url: attachment.url,
+            }))
           );
 
           return {
@@ -936,7 +939,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           type: state.type,
           position: state.position,
           description: state.description,
-          teamId: team.id
+          teamId: team.id,
         }));
 
         return {
@@ -1009,9 +1012,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         // 詳細情報を取得
-        const [teams, issues] = await Promise.all([
+        const [teams, issues, members] = await Promise.all([
           project.teams(),
           project.issues({ first: 50 }),
+          project.members(),
         ]);
 
         // プロジェクトの詳細情報を整形
@@ -1046,6 +1050,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 priority: issue.priority,
               };
             })
+          ),
+          members: await Promise.all(
+            members.nodes.map(async (member: any) => ({
+              id: member.id,
+              name: member.name,
+              displayName: member.displayName,
+            }))
           ),
         };
 
