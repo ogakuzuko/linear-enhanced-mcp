@@ -32,43 +32,30 @@ if (!API_KEY) {
   console.error("export LINEAR_API_KEY=your-api-key");
   console.error("npx @ibraheem4/linear-mcp");
   console.error("");
-  console.error("Optional: Set LINEAR_TEAM_NAME to prefix tools with a team name");
+  console.error("Optional: Set LINEAR_TEAM_NAME to customize server name (linear-mcp-for-X)");
   console.error("LINEAR_TEAM_NAME=your-team-name LINEAR_API_KEY=your-api-key npx @ibraheem4/linear-mcp");
   process.exit(1);
 }
 
 // チーム名が設定されている場合は、そのことを表示
 if (TEAM_NAME) {
-  console.error(`Team name set to "${TEAM_NAME}". Tools will be prefixed with this name.`);
+  console.error(`Team name set to "${TEAM_NAME}". Server will be named linear-mcp-for-${TEAM_NAME}.`);
 }
 
 const linearClient = new LinearClient({
   apiKey: API_KEY,
 });
 
-// ツール名にチーム名を追加するヘルパー関数
-const addTeamNameToToolName = (name: string): string => {
-  return TEAM_NAME ? `${TEAM_NAME}_${name}` : name;
-};
-
-// ツール名の正規化（チーム名プレフィックスを削除）
-const normalizeToolName = (toolName: string): string => {
-  if (TEAM_NAME && toolName.startsWith(`${TEAM_NAME}_`)) {
-    return toolName.substring(TEAM_NAME.length + 1);
-  }
-  return toolName;
-};
-
-// capabilitiesを動的に生成
+// capabilitiesを生成
 const toolsCapabilities: Record<string, boolean> = {};
 const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label"];
 baseTools.forEach(tool => {
-  toolsCapabilities[addTeamNameToToolName(tool)] = true;
+  toolsCapabilities[tool] = true;
 });
 
 const server = new Server(
   {
-    name: "linear-mcp",
+    name: TEAM_NAME ? `linear-mcp-for-${TEAM_NAME}` : "linear-mcp",
     version: "37.0.0", // Match Linear SDK version
   },
   {
@@ -79,16 +66,11 @@ const server = new Server(
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  // 名前と説明にチーム名を追加するヘルパー関数
-  const addTeamNameToString = (str: string): string => {
-    return TEAM_NAME ? `${TEAM_NAME}専用: ${str}` : str;
-  };
-
   return {
     tools: [
       {
-        name: addTeamNameToToolName("create_issue"),
-        description: addTeamNameToString("Create a new issue in Linear"),
+        name: "create_issue",
+        description: "Create a new issue in Linear",
         inputSchema: {
           type: "object",
           properties: {
@@ -130,8 +112,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: addTeamNameToToolName("list_issues"),
-        description: addTeamNameToString("List issues with optional filters"),
+        name: "list_issues",
+        description: "List issues with optional filters",
         inputSchema: {
           type: "object",
           properties: {
@@ -155,8 +137,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: addTeamNameToToolName("update_issue"),
-        description: addTeamNameToString("Update an existing issue"),
+        name: "update_issue",
+        description: "Update an existing issue",
         inputSchema: {
           type: "object",
           properties: {
@@ -206,16 +188,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: addTeamNameToToolName("list_teams"),
-        description: addTeamNameToString("List all teams in the workspace"),
+        name: "list_teams",
+        description: "List all teams in the workspace",
         inputSchema: {
           type: "object",
           properties: {},
         },
       },
       {
-        name: addTeamNameToToolName("list_projects"),
-        description: addTeamNameToString("List all projects"),
+        name: "list_projects",
+        description: "List all projects",
         inputSchema: {
           type: "object",
           properties: {
@@ -231,8 +213,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: addTeamNameToToolName("search_issues"),
-        description: addTeamNameToString("Search for issues using a text query"),
+        name: "search_issues",
+        description: "Search for issues using a text query",
         inputSchema: {
           type: "object",
           properties: {
@@ -249,8 +231,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: addTeamNameToToolName("get_issue"),
-        description: addTeamNameToString("Get detailed information about a specific issue"),
+        name: "get_issue",
+        description: "Get detailed information about a specific issue",
         inputSchema: {
           type: "object",
           properties: {
@@ -263,8 +245,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: addTeamNameToToolName("list_labels"),
-        description: addTeamNameToString("チームに紐づくラベルの一覧を取得"),
+        name: "list_labels",
+        description: "チームに紐づくラベルの一覧を取得",
         inputSchema: {
           type: "object",
           properties: {
@@ -277,8 +259,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: addTeamNameToToolName("create_label"),
-        description: addTeamNameToString("新しいラベルを作成"),
+        name: "create_label",
+        description: "新しいラベルを作成",
         inputSchema: {
           type: "object",
           properties: {
@@ -303,8 +285,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: addTeamNameToToolName("update_label"),
-        description: addTeamNameToString("既存のラベルを編集"),
+        name: "update_label",
+        description: "既存のラベルを編集",
         inputSchema: {
           type: "object",
           properties: {
@@ -395,7 +377,7 @@ type UpdateLabelArgs = {
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
-    const toolName = normalizeToolName(request.params.name);
+    const toolName = request.params.name;
 
     switch (toolName) {
       case "create_issue": {
@@ -877,7 +859,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       default:
         throw new McpError(
           ErrorCode.MethodNotFound,
-          `Unknown tool: ${request.params.name}, ${toolName}`
+          `Unknown tool: ${request.params.name}`
         );
     }
   } catch (error: any) {
