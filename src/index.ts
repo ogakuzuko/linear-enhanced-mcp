@@ -48,7 +48,7 @@ const linearClient = new LinearClient({
 
 // capabilitiesを生成
 const toolsCapabilities: Record<string, boolean> = {};
-const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label"];
+const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label", "list_states"];
 baseTools.forEach(tool => {
   toolsCapabilities[tool] = true;
 });
@@ -310,6 +310,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["id"],
         },
       },
+      {
+        name: "list_states",
+        description: "特定のチームおよびプロジェクトにおけるステータスのリストを表示",
+        inputSchema: {
+          type: "object",
+          properties: {
+            teamId: {
+              type: "string",
+              description: "チームID（オプション）",
+            },
+            projectId: {
+              type: "string",
+              description: "プロジェクトID（オプション）",
+            },
+          },
+        },
+      },
     ],
   };
 });
@@ -373,6 +390,10 @@ type UpdateLabelArgs = {
   name?: string;
   color?: string;
   description?: string;
+};
+
+type ListStatesArgs = {
+  teamId: string;
 };
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -851,6 +872,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(updatedLabel, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "list_states": {
+        const args = request.params.arguments as unknown as ListStatesArgs;
+
+        let states = [];
+
+        const team = await linearClient.team(args.teamId);
+        if (!team) {
+          throw new Error(`Team ${args.teamId} not found`);
+        }
+
+        const workflowStates = await team.states();
+        states = workflowStates.nodes.map((state) => ({
+          id: state.id,
+          name: state.name,
+          color: state.color,
+          type: state.type,
+          position: state.position,
+          description: state.description,
+          teamId: team.id
+        }));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(states, null, 2),
             },
           ],
         };
