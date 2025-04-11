@@ -1,6 +1,6 @@
 # Linear MCP Server
 
-> **About this Fork**: This repository is a fork of [@ibraheem4/linear-mcp](https://github.com/ibraheem4/linear-mcp), extended based on practical work experience. It adds enhanced functionality, particularly for label management and parent-child issue relationships, enabling more flexible and detailed operations.
+> **About this Fork**: This repository is a fork of [@ibraheem4/linear-mcp](https://github.com/ibraheem4/linear-mcp), extended based on practical work experience. It adds enhanced functionality, particularly for label management and parent-child issue relationships, enabling more flexible and detailed operations in Linear.
 
 > Note: This is a custom implementation. For the official Cline Linear MCP server, see [cline/linear-mcp](https://github.com/cline/linear-mcp).
 
