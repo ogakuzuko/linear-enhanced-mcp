@@ -48,7 +48,7 @@ const linearClient = new LinearClient({
 
 // capabilitiesを生成
 const toolsCapabilities: Record<string, boolean> = {};
-const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label", "list_states", "list_team_members"];
+const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label", "list_states", "list_team_members", "get_project", "create_project"];
 baseTools.forEach(tool => {
   toolsCapabilities[tool] = true;
 });
@@ -352,6 +352,47 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["projectId"],
         },
       },
+      {
+        name: "create_project",
+        description: "Create a new project in Linear",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "Project name (required)",
+            },
+            teamId: {
+              type: "string",
+              description: "Team ID (required)",
+            },
+            description: {
+              type: "string",
+              description: "Project description (optional)",
+            },
+            color: {
+              type: "string",
+              description: "Project color (optional, hex color code)",
+            },
+            icon: {
+              type: "string",
+              description: "Project icon (optional)",
+            },
+            leadId: {
+              type: "string",
+              description: "Project lead user ID (optional)",
+            },
+            memberIds: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              description: "Project member user IDs (optional)",
+            },
+          },
+          required: ["name", "teamId"],
+        },
+      },
     ],
   };
 });
@@ -427,6 +468,16 @@ type ListTeamMembersArgs = {
 
 type GetProjectArgs = {
   projectId: string;
+};
+
+type CreateProjectArgs = {
+  name: string;
+  teamId: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  leadId?: string;
+  memberIds?: string[];
 };
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -1065,6 +1116,56 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(projectDetails, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "create_project": {
+        const args = request.params.arguments as unknown as CreateProjectArgs;
+        if (!args?.name || !args?.teamId) {
+          throw new Error("Project name and team ID are required");
+        }
+
+        const team = await linearClient.team(args.teamId);
+        if (!team) {
+          throw new Error(`Team ${args.teamId} not found`);
+        }
+
+        const response: any = await linearClient.client.request(`
+          mutation CreateProject($input: ProjectCreateInput!) {
+            projectCreate(input: $input) {
+              success
+              project {
+                id
+                name
+                description
+                state
+                url
+                createdAt
+                updatedAt
+              }
+            }
+          }
+        `, {
+          input: {
+            name: args.name,
+            teamIds: [args.teamId],
+            description: args.description,
+            color: args.color,
+            icon: args.icon,
+            leadId: args.leadId,
+            memberIds: args.memberIds,
+          }
+        });
+        
+        const project = response.projectCreate.project;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(project, null, 2),
             },
           ],
         };
