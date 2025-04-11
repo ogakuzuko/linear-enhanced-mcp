@@ -1,58 +1,155 @@
 # Linear MCP Server
 
+> **About this Fork**: This repository is a fork of [@ibraheem4/linear-mcp](https://github.com/ibraheem4/linear-mcp), extended based on practical work experience. It adds enhanced functionality, particularly for label management and parent-child issue relationships, enabling more flexible and detailed operations.
+
 > Note: This is a custom implementation. For the official Cline Linear MCP server, see [cline/linear-mcp](https://github.com/cline/linear-mcp).
-
-> **Fork Information**: This repository is a fork of [@ibraheem4/linear-mcp](https://github.com/ibraheem4/linear-mcp). texmeijin has extended it based on practical work experience, adding features such as label management to enable more flexible and detailed operations. While maintaining the original functionality, additional features have been added to make daily task management more efficient.
-
-## Added Features (include WIP🚧)
-
-- enhancement of label management:
-  - create label
-  - update label
-  - delete label
-  - get label
-  - list labels
-  - list issues with label
-- enhancement of issue management with parentId:
-  - create issue with parentId
-  - update issue with parentId
-  - delete issue with parentId
-  - get issue with parentId
-  - list issues with parentId
-  - list issues with parentId
-
----
 
 <a href="https://glama.ai/mcp/servers/71fqw0uqmx"> <img width="380" height="200" src="https://glama.ai/mcp/servers/71fqw0uqmx/badge" />
 
 A Model Context Protocol (MCP) server that provides tools for interacting with Linear's API, enabling AI agents to manage issues, projects, and teams programmatically through the Linear platform.
 
-## Features
+## Available Tools
 
-- **Issue Management**
+This MCP provides the following tools for leveraging Linear's functionality. Features shown in **bold** are additions or extensions to the original repository.
 
-  - Create new issues with customizable properties (title, description, team, assignee, priority, labels)
-  - List issues with flexible filtering options (team, assignee, status)
-  - Update existing issues (title, description, status, assignee, priority)
+### **Enhanced Features**
 
-- **Team Management**
+#### **Label Management**
 
-  - List all teams in the workspace
-  - Access team details including ID, name, key, and description
+##### **list_labels**
 
-- **Project Management**
-  - List all projects with optional team filtering
-  - View project details including name, description, state, and associated teams
+Retrieves a list of labels associated with a team.
 
-- **Label Management**
-  - List all labels associated with a team
-  - Create new labels with custom name, color, and description
-  - Update existing labels to modify their properties
+```typescript
+{
+  teamId: string;      // Required: Team ID
+}
+```
+
+##### **create_label**
+
+Creates a new label.
+
+```typescript
+{
+  teamId: string;      // Required: Team ID
+  name: string;        // Required: Label name
+  color: string;       // Required: Label color (hex color code)
+  description?: string; // Optional: Label description
+}
+```
+
+##### **update_label**
+
+Updates an existing label.
+
+```typescript
+{
+  id: string;          // Required: Label ID
+  name?: string;       // Optional: New label name
+  color?: string;      // Optional: New color (hex color code)
+  description?: string; // Optional: New description
+}
+```
+
+##### **list_states**
+
+Displays a list of states for a specific team and project.
+
+```typescript
+{
+  teamId: string;      // Required: Team ID
+  projectId?: string;  // Optional: Project ID
+}
+```
+
+#### **Parent-Child Issue Management**
+
+##### **create_issue** (Enhanced)
+
+```typescript
+{
+  title: string;          // Required: Issue title
+  description?: string;   // Optional: Issue description (markdown supported)
+  teamId: string;        // Required: Team ID
+  assigneeId?: string;   // Optional: Assignee user ID
+  priority?: number;     // Optional: Priority (0-4)
+  labels?: string[];     // Optional: Label IDs to apply
+  parentId?: string;     // **Added**: Parent issue ID
+}
+```
+
+##### **update_issue** (Enhanced)
+
+```typescript
+{
+  issueId: string;       // Required: Issue ID
+  title?: string;        // Optional: New title
+  description?: string;  // Optional: New description
+  status?: string;      // Optional: New status
+  assigneeId?: string;  // Optional: New assignee ID
+  priority?: number;    // Optional: New priority (0-4)
+  labels?: string[];   // Optional: Label IDs to apply to the issue
+  parentId?: string;   // **Added**: Parent issue ID
+  projectId?: string;  // **Added**: Project ID
+}
+```
+
+### Basic Features
+
+#### list_issues
+
+Lists issues with optional filters.
+
+```typescript
+{
+  teamId?: string;      // Optional: Filter by team ID
+  assigneeId?: string;  // Optional: Filter by assignee ID
+  status?: string;      // Optional: Filter by status
+  first?: number;       // Optional: Number of issues to return (default: 50)
+}
+```
+
+#### list_teams
+
+Lists all teams in the workspace. No parameters required.
+
+#### list_projects
+
+Lists projects with optional filters.
+
+```typescript
+{
+  teamId?: string;     // Optional: Filter by team ID
+  first?: number;      // Optional: Number of projects to return (default: 50)
+}
+```
+
+#### search_issues
+
+Searches for issues using a text query.
+
+```typescript
+{
+  query: string;       // Required: Search query text
+  first?: number;      // Optional: Number of results to return (default: 50)
+}
+```
+
+#### get_issue
+
+Gets detailed information about a specific issue.
+
+```typescript
+{
+  issueId: string;     // Required: Issue ID
+}
+```
 
 ## Prerequisites
 
 - Node.js (v16 or higher)
-- A Linear account with API access
+- Linear account with API access
 - Linear API key with appropriate permissions
 
 ## Quick Start
@@ -167,115 +264,6 @@ For Cursor, the server must be run with the full path:
 
 ```bash
 node /path/to/linear-enhanced-mcp/build/index.js
-```
-
-## Available Tools
-
-### create_issue
-
-Creates a new issue in Linear.
-
-```typescript
-{
-  title: string;          // Required: Issue title
-  description?: string;   // Optional: Issue description (markdown supported)
-  teamId: string;        // Required: Team ID
-  assigneeId?: string;   // Optional: Assignee user ID
-  priority?: number;     // Optional: Priority (0-4)
-  labels?: string[];     // Optional: Label IDs to apply
-  parentId?: string;     // Optional: Parent issue ID
-}
-```
-
-### list_issues
-
-Lists issues with optional filters.
-
-```typescript
-{
-  teamId?: string;      // Optional: Filter by team ID
-  assigneeId?: string;  // Optional: Filter by assignee ID
-  status?: string;      // Optional: Filter by status
-  first?: number;       // Optional: Number of issues to return (default: 50)
-}
-```
-
-### update_issue
-
-Updates an existing issue.
-
-```typescript
-{
-  issueId: string;       // Required: Issue ID
-  title?: string;        // Optional: New title
-  description?: string;  // Optional: New description
-  status?: string;      // Optional: New status
-  assigneeId?: string;  // Optional: New assignee ID
-  priority?: number;    // Optional: New priority (0-4)
-  labels?: string[];   // Optional: Label IDs to apply to the issue
-  parentId?: string;   // Optional: Parent issue ID
-}
-```
-
-### list_labels
-
-Lists all labels associated with a team.
-
-```typescript
-{
-  teamId: string;      // Required: Team ID
-}
-```
-
-### create_label
-
-Creates a new label for a team.
-
-```typescript
-{
-  teamId: string;      // Required: Team ID
-  name: string;        // Required: Label name
-  color: string;       // Required: Label color (hex color code)
-  description?: string; // Optional: Label description
-}
-```
-
-### update_label
-
-Updates an existing label.
-
-```typescript
-{
-  id: string;          // Required: Label ID
-  name?: string;       // Optional: New label name
-  color?: string;      // Optional: New color (hex color code)
-  description?: string; // Optional: New description
-}
-```
-
-### list_teams
-
-Lists all teams in the workspace. No parameters required.
-
-### list_projects
-
-Lists all projects with optional filtering.
-
-```typescript
-{
-  teamId?: string;     // Optional: Filter by team ID
-  first?: number;      // Optional: Number of projects to return (default: 50)
-}
-```
-
-### get_issue
-
-Gets detailed information about a specific issue.
-
-```typescript
-{
-  issueId: string; // Required: Issue ID
-}
 ```
 
 ## Development
