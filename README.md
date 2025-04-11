@@ -54,12 +54,11 @@ Updates an existing label.
 
 ##### **list_states**
 
-Displays a list of states for a specific team and project.
+Displays a list of workflow states for a specific team.
 
 ```typescript
 {
   teamId: string;      // Required: Team ID
-  projectId?: string;  // Optional: Project ID
 }
 ```
 
