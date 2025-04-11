@@ -48,7 +48,7 @@ const linearClient = new LinearClient({
 
 // capabilitiesを生成
 const toolsCapabilities: Record<string, boolean> = {};
-const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label", "list_states"];
+const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label", "list_states", "list_team_members"];
 baseTools.forEach(tool => {
   toolsCapabilities[tool] = true;
 });
@@ -324,6 +324,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["teamId"]
         },
       },
+      {
+        name: "list_team_members",
+        description: "チームに所属するメンバー一覧を取得",
+        inputSchema: {
+          type: "object",
+          properties: {
+            teamId: {
+              type: "string",
+              description: "チームID",
+            }
+          },
+          required: ["teamId"]
+        },
+      },
     ],
   };
 });
@@ -390,6 +404,10 @@ type UpdateLabelArgs = {
 };
 
 type ListStatesArgs = {
+  teamId: string;
+};
+
+type ListTeamMembersArgs = {
   teamId: string;
 };
 
@@ -908,6 +926,54 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(states, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "list_team_members": {
+        const args = request.params.arguments as unknown as ListTeamMembersArgs;
+        if (!args?.teamId) {
+          throw new Error("Team ID is required");
+        }
+
+        const team = await linearClient.team(args.teamId);
+        if (!team) {
+          throw new Error(`Team ${args.teamId} not found`);
+        }
+
+        // チームメンバーシップを取得
+        const memberships = await team.memberships();
+
+        // メンバーシップからユーザー情報を取得
+        const teamMembers = [];
+        for (const membership of memberships.nodes) {
+          try {
+            // メンバーシップからユーザーIDを取得して、userを検索
+            const user = await linearClient.user(membership.id);
+            if (user) {
+              teamMembers.push({
+                id: user.id,
+                name: user.name,
+                // email: user.email,
+                displayName: user.displayName,
+                active: user.active,
+                // avatarUrl: user.avatarUrl,
+                // lastSeen: user.lastSeen,
+                // createdAt: user.createdAt,
+                // updatedAt: user.updatedAt
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching user for membership: ${error}`);
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(teamMembers, null, 2),
             },
           ],
         };
