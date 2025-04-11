@@ -88,7 +88,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             assigneeId: {
               type: "string",
-              description: "Assignee user ID (optional)",
+              description: "Assignee user ID (optional, 未指定の場合は自分が割り当てられます。明示的にnullを指定するとassigneeなしになります)",
             },
             priority: {
               type: "number",
@@ -332,7 +332,7 @@ type CreateIssueArgs = {
   title: string;
   description?: string;
   teamId: string;
-  assigneeId?: string;
+  assigneeId?: string | null;
   priority?: number;
   labels?: string[];
   parentId?: string;
@@ -404,11 +404,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("Title and teamId are required");
         }
 
+        // assigneeIdが未指定の場合、現在のユーザーを割り当てる
+        let assigneeId = args.assigneeId;
+        if (assigneeId === undefined) {
+          const viewer = await linearClient.viewer;
+          assigneeId = viewer.id;
+        }
+        // assigneeIdがnullの場合はそのまま（担当者なし）
+
         const issue = await linearClient.createIssue({
           title: args.title,
           description: args.description,
           teamId: args.teamId,
-          assigneeId: args.assigneeId,
+          assigneeId: assigneeId,
           priority: args.priority,
           labelIds: args.labels,
           parentId: args.parentId,
