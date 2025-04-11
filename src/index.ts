@@ -312,19 +312,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "list_states",
-        description: "特定のチームおよびプロジェクトにおけるステータスのリストを表示",
+        description: "特定のチームにおけるワークフローステータスのリストを表示",
         inputSchema: {
           type: "object",
           properties: {
             teamId: {
               type: "string",
-              description: "チームID（オプション）",
-            },
-            projectId: {
-              type: "string",
-              description: "プロジェクトID（オプション）",
-            },
+              description: "チームID",
+            }
           },
+          required: ["teamId"]
         },
       },
     ],
