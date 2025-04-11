@@ -338,6 +338,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["teamId"]
         },
       },
+      {
+        name: "get_project",
+        description: "Get detailed information about a specific project",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: {
+              type: "string",
+              description: "Project ID",
+            },
+          },
+          required: ["projectId"],
+        },
+      },
     ],
   };
 });
@@ -409,6 +423,10 @@ type ListStatesArgs = {
 
 type ListTeamMembersArgs = {
   teamId: string;
+};
+
+type GetProjectArgs = {
+  projectId: string;
 };
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -700,46 +718,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             dueDate: issue.dueDate,
             assignee: assignee
               ? {
-                id: assignee.id,
-                name: assignee.name,
-                email: assignee.email,
-              }
+                  id: assignee.id,
+                  name: assignee.name,
+                  email: assignee.email,
+                }
               : null,
             creator: creator
               ? {
-                id: creator.id,
-                name: creator.name,
-                email: creator.email,
-              }
+                  id: creator.id,
+                  name: creator.name,
+                  email: creator.email,
+                }
               : null,
             team: team
               ? {
-                id: team.id,
-                name: team.name,
-                key: team.key,
-              }
+                  id: team.id,
+                  name: team.name,
+                  key: team.key,
+                }
               : null,
             project: project
               ? {
-                id: project.id,
-                name: project.name,
-                state: project.state,
-              }
+                  id: project.id,
+                  name: project.name,
+                  state: project.state,
+                }
               : null,
             parent: parent
               ? {
-                id: parent.id,
-                title: parent.title,
-                identifier: parent.identifier,
-              }
+                  id: parent.id,
+                  title: parent.title,
+                  identifier: parent.identifier,
+                }
               : null,
             cycle:
               cycle && cycle.name
                 ? {
-                  id: cycle.id,
-                  name: cycle.name,
-                  number: cycle.number,
-                }
+                    id: cycle.id,
+                    name: cycle.name,
+                    number: cycle.number,
+                  }
                 : null,
             labels: await Promise.all(
               labels.nodes.map(async (label: any) => ({
@@ -974,6 +992,68 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(teamMembers, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "get_project": {
+        const args = request.params.arguments as unknown as GetProjectArgs;
+        if (!args?.projectId) {
+          throw new Error("Project ID is required");
+        }
+
+        const project = await linearClient.project(args.projectId);
+        if (!project) {
+          throw new Error(`Project ${args.projectId} not found`);
+        }
+
+        // 詳細情報を取得
+        const [teams, issues] = await Promise.all([
+          project.teams(),
+          project.issues({ first: 50 }),
+        ]);
+
+        // プロジェクトの詳細情報を整形
+        const projectDetails = {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          content: project.content,
+          state: project.state,
+          url: project.url,
+          createdAt: project.createdAt,
+          updatedAt: project.updatedAt,
+          startDate: project.startDate,
+          targetDate: project.targetDate,
+          completedAt: project.completedAt,
+          progress: project.progress,
+          teams: await Promise.all(
+            teams.nodes.map(async (team: any) => ({
+              id: team.id,
+              name: team.name,
+              key: team.key,
+            }))
+          ),
+          issues: await Promise.all(
+            issues.nodes.map(async (issue: any) => {
+              const state = await issue.state;
+              return {
+                id: issue.id,
+                title: issue.title,
+                identifier: issue.identifier,
+                status: state ? state.name : "Unknown",
+                priority: issue.priority,
+              };
+            })
+          ),
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(projectDetails, null, 2),
             },
           ],
         };
