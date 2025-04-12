@@ -155,6 +155,20 @@ Gets detailed information about a specific project, including teams, issues, and
 }
 ```
 
+#### create_project
+
+Creates a new project in Linear.
+
+```typescript
+{
+  name: string;          // Required: Project name
+  teamId: string;        // Required: Team ID
+  description?: string;  // Optional: Project description
+  content?: string;      // Optional: Project content in markdown format
+  leadId?: string;       // Optional: Project lead user ID (未指定の場合は自分がリードに設定されます)
+}
+```
+
 ## Prerequisites
 
 - Node.js (v16 or higher)
