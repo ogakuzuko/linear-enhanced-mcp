@@ -169,6 +169,20 @@ Creates a new project in Linear.
 }
 ```
 
+#### update_project
+
+Updates an existing project in Linear.
+
+```typescript
+{
+  projectId: string;     // Required: Project ID
+  name?: string;         // Optional: New project name
+  description?: string;  // Optional: New project description
+  content?: string;      // Optional: New project content in markdown format
+  leadId?: string;       // Optional: New project lead user ID
+}
+```
+
 ## Prerequisites
 
 - Node.js (v16 or higher)

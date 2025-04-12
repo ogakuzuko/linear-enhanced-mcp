@@ -69,6 +69,7 @@ const baseTools = [
   "list_team_members",
   "get_project",
   "create_project",
+  "update_project",
 ];
 baseTools.forEach((tool) => {
   toolsCapabilities[tool] = true;
@@ -406,6 +407,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["name", "teamId"],
         },
       },
+      {
+        name: "update_project",
+        description: "Update an existing project in Linear",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: {
+              type: "string",
+              description: "Project ID (required)",
+            },
+            name: {
+              type: "string",
+              description: "New project name (optional)",
+            },
+            description: {
+              type: "string",
+              description: "New project description (optional)",
+            },
+            content: {
+              type: "string",
+              description: "New project content in markdown format (optional)",
+            },
+            leadId: {
+              type: "string",
+              description: "New project lead user ID (optional)",
+            },
+          },
+          required: ["projectId"],
+        },
+      },
     ],
   };
 });
@@ -486,6 +517,14 @@ type GetProjectArgs = {
 type CreateProjectArgs = {
   name: string;
   teamId: string;
+  description?: string;
+  content?: string;
+  leadId?: string;
+};
+
+type UpdateProjectArgs = {
+  projectId: string;
+  name?: string;
   description?: string;
   content?: string;
   leadId?: string;
@@ -1163,6 +1202,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(project, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "update_project": {
+        const args = request.params.arguments as unknown as UpdateProjectArgs;
+        if (!args?.projectId) {
+          throw new Error("Project ID is required");
+        }
+
+        const project = await linearClient.project(args.projectId);
+        if (!project) {
+          throw new Error(`Project ${args.projectId} not found`);
+        }
+
+        const updatedProject = await linearClient.updateProject(
+          args.projectId,
+          {
+            name: args.name,
+            description: args.description,
+            content: args.content,
+            leadId: args.leadId,
+          }
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(updatedProject, null, 2),
             },
           ],
         };
