@@ -32,14 +32,20 @@ if (!API_KEY) {
   console.error("export LINEAR_API_KEY=your-api-key");
   console.error("npx @ibraheem4/linear-mcp");
   console.error("");
-  console.error("Optional: Set LINEAR_TEAM_NAME to customize server name (linear-mcp-for-X)");
-  console.error("LINEAR_TEAM_NAME=your-team-name LINEAR_API_KEY=your-api-key npx @ibraheem4/linear-mcp");
+  console.error(
+    "Optional: Set LINEAR_TEAM_NAME to customize server name (linear-mcp-for-X)"
+  );
+  console.error(
+    "LINEAR_TEAM_NAME=your-team-name LINEAR_API_KEY=your-api-key npx @ibraheem4/linear-mcp"
+  );
   process.exit(1);
 }
 
 // チーム名が設定されている場合は、そのことを表示
 if (TEAM_NAME) {
-  console.error(`Team name set to "${TEAM_NAME}". Server will be named linear-mcp-for-${TEAM_NAME}.`);
+  console.error(
+    `Team name set to "${TEAM_NAME}". Server will be named linear-mcp-for-${TEAM_NAME}.`
+  );
 }
 
 const linearClient = new LinearClient({
@@ -48,8 +54,24 @@ const linearClient = new LinearClient({
 
 // capabilitiesを生成
 const toolsCapabilities: Record<string, boolean> = {};
-const baseTools = ["create_issue", "list_issues", "update_issue", "list_teams", "list_projects", "search_issues", "get_issue", "list_labels", "create_label", "update_label", "list_states", "list_team_members"];
-baseTools.forEach(tool => {
+const baseTools = [
+  "create_issue",
+  "list_issues",
+  "update_issue",
+  "list_teams",
+  "list_projects",
+  "search_issues",
+  "get_issue",
+  "list_labels",
+  "create_label",
+  "update_label",
+  "list_states",
+  "list_team_members",
+  "get_project",
+  "create_project",
+  "update_project",
+];
+baseTools.forEach((tool) => {
   toolsCapabilities[tool] = true;
 });
 
@@ -88,7 +110,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             assigneeId: {
               type: "string",
-              description: "Assignee user ID (optional, 未指定の場合は自分が割り当てられます。明示的にnullを指定するとassigneeなしになります)",
+              description:
+                "Assignee user ID (optional, 未指定の場合は自分が割り当てられます。明示的にnullを指定するとassigneeなしになります)",
             },
             priority: {
               type: "number",
@@ -171,9 +194,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             labels: {
               type: "array",
               items: {
-                type: "string"
+                type: "string",
               },
-              description: "ラベルIDの配列（オプション）、指定したラベルで置き換えられます",
+              description:
+                "ラベルIDの配列（オプション）、指定したラベルで置き換えられます",
             },
             parentId: {
               type: "string",
@@ -319,9 +343,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             teamId: {
               type: "string",
               description: "チームID",
-            }
+            },
           },
-          required: ["teamId"]
+          required: ["teamId"],
         },
       },
       {
@@ -333,9 +357,84 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             teamId: {
               type: "string",
               description: "チームID",
-            }
+            },
           },
-          required: ["teamId"]
+          required: ["teamId"],
+        },
+      },
+      {
+        name: "get_project",
+        description: "Get detailed information about a specific project",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: {
+              type: "string",
+              description: "Project ID",
+            },
+          },
+          required: ["projectId"],
+        },
+      },
+      {
+        name: "create_project",
+        description: "Create a new project in Linear",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "Project name (required)",
+            },
+            teamId: {
+              type: "string",
+              description: "Team ID (required)",
+            },
+            description: {
+              type: "string",
+              description: "Project description (optional)",
+            },
+            content: {
+              type: "string",
+              description: "Project content in markdown format (optional)",
+            },
+            leadId: {
+              type: "string",
+              description:
+                "Project lead user ID (optional, 未指定の場合は自分がリードに設定されます)",
+            },
+          },
+          required: ["name", "teamId"],
+        },
+      },
+      {
+        name: "update_project",
+        description: "Update an existing project in Linear",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: {
+              type: "string",
+              description: "Project ID (required)",
+            },
+            name: {
+              type: "string",
+              description: "New project name (optional)",
+            },
+            description: {
+              type: "string",
+              description: "New project description (optional)",
+            },
+            content: {
+              type: "string",
+              description: "New project content in markdown format (optional)",
+            },
+            leadId: {
+              type: "string",
+              description: "New project lead user ID (optional)",
+            },
+          },
+          required: ["projectId"],
         },
       },
     ],
@@ -409,6 +508,26 @@ type ListStatesArgs = {
 
 type ListTeamMembersArgs = {
   teamId: string;
+};
+
+type GetProjectArgs = {
+  projectId: string;
+};
+
+type CreateProjectArgs = {
+  name: string;
+  teamId: string;
+  description?: string;
+  content?: string;
+  leadId?: string;
+};
+
+type UpdateProjectArgs = {
+  projectId: string;
+  name?: string;
+  description?: string;
+  content?: string;
+  leadId?: string;
 };
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -681,7 +800,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             autoArchivedAt: Date | null;
             autoClosedAt: Date | null;
             trashed: boolean;
-            relations: Array<{ id: string; type: string; issue: { id: string; title: string } }>;
+            relations: Array<{
+              id: string;
+              type: string;
+              issue: { id: string; title: string };
+            }>;
           } = {
             id: issue.id,
             identifier: issue.identifier,
@@ -700,46 +823,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             dueDate: issue.dueDate,
             assignee: assignee
               ? {
-                id: assignee.id,
-                name: assignee.name,
-                email: assignee.email,
-              }
+                  id: assignee.id,
+                  name: assignee.name,
+                  email: assignee.email,
+                }
               : null,
             creator: creator
               ? {
-                id: creator.id,
-                name: creator.name,
-                email: creator.email,
-              }
+                  id: creator.id,
+                  name: creator.name,
+                  email: creator.email,
+                }
               : null,
             team: team
               ? {
-                id: team.id,
-                name: team.name,
-                key: team.key,
-              }
+                  id: team.id,
+                  name: team.name,
+                  key: team.key,
+                }
               : null,
             project: project
               ? {
-                id: project.id,
-                name: project.name,
-                state: project.state,
-              }
+                  id: project.id,
+                  name: project.name,
+                  state: project.state,
+                }
               : null,
             parent: parent
               ? {
-                id: parent.id,
-                title: parent.title,
-                identifier: parent.identifier,
-              }
+                  id: parent.id,
+                  title: parent.title,
+                  identifier: parent.identifier,
+                }
               : null,
             cycle:
               cycle && cycle.name
                 ? {
-                  id: cycle.id,
-                  name: cycle.name,
-                  number: cycle.number,
-                }
+                    id: cycle.id,
+                    name: cycle.name,
+                    number: cycle.number,
+                  }
                 : null,
             labels: await Promise.all(
               labels.nodes.map(async (label: any) => ({
@@ -777,7 +900,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               issue: {
                 id: relation.issue.id,
                 title: relation.issue.title,
-              }
+              },
             })),
           };
 
@@ -796,12 +919,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
           // Add image analysis for attachments if they are images
           issueDetails.attachments = await Promise.all(
-            attachments.nodes
-              .map(async (attachment: any) => ({
-                id: attachment.id,
-                title: attachment.title,
-                url: attachment.url,
-              }))
+            attachments.nodes.map(async (attachment: any) => ({
+              id: attachment.id,
+              title: attachment.title,
+              url: attachment.url,
+            }))
           );
 
           return {
@@ -918,7 +1040,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           type: state.type,
           position: state.position,
           description: state.description,
-          teamId: team.id
+          teamId: team.id,
         }));
 
         return {
@@ -974,6 +1096,143 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(teamMembers, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "get_project": {
+        const args = request.params.arguments as unknown as GetProjectArgs;
+        if (!args?.projectId) {
+          throw new Error("Project ID is required");
+        }
+
+        const project = await linearClient.project(args.projectId);
+        if (!project) {
+          throw new Error(`Project ${args.projectId} not found`);
+        }
+
+        // 詳細情報を取得
+        const [teams, issues, members] = await Promise.all([
+          project.teams(),
+          project.issues({ first: 50 }),
+          project.members(),
+        ]);
+
+        // プロジェクトの詳細情報を整形
+        const projectDetails = {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          content: project.content,
+          state: project.state,
+          url: project.url,
+          createdAt: project.createdAt,
+          updatedAt: project.updatedAt,
+          startDate: project.startDate,
+          targetDate: project.targetDate,
+          completedAt: project.completedAt,
+          progress: project.progress,
+          teams: await Promise.all(
+            teams.nodes.map(async (team: any) => ({
+              id: team.id,
+              name: team.name,
+              key: team.key,
+            }))
+          ),
+          issues: await Promise.all(
+            issues.nodes.map(async (issue: any) => {
+              const state = await issue.state;
+              return {
+                id: issue.id,
+                title: issue.title,
+                identifier: issue.identifier,
+                status: state ? state.name : "Unknown",
+                priority: issue.priority,
+              };
+            })
+          ),
+          members: await Promise.all(
+            members.nodes.map(async (member: any) => ({
+              id: member.id,
+              name: member.name,
+              displayName: member.displayName,
+            }))
+          ),
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(projectDetails, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "create_project": {
+        const args = request.params.arguments as unknown as CreateProjectArgs;
+        if (!args?.name || !args?.teamId) {
+          throw new Error("Project name and team ID are required");
+        }
+
+        const team = await linearClient.team(args.teamId);
+        if (!team) {
+          throw new Error(`Team ${args.teamId} not found`);
+        }
+
+        // leadIdが未指定の場合、現在のユーザーを設定
+        let leadId = args.leadId;
+        if (leadId === undefined) {
+          const viewer = await linearClient.viewer;
+          leadId = viewer.id;
+        }
+
+        const project = await linearClient.createProject({
+          name: args.name,
+          teamIds: [args.teamId],
+          description: args.description,
+          content: args.content,
+          leadId: leadId,
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(project, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "update_project": {
+        const args = request.params.arguments as unknown as UpdateProjectArgs;
+        if (!args?.projectId) {
+          throw new Error("Project ID is required");
+        }
+
+        const project = await linearClient.project(args.projectId);
+        if (!project) {
+          throw new Error(`Project ${args.projectId} not found`);
+        }
+
+        const updatedProject = await linearClient.updateProject(
+          args.projectId,
+          {
+            name: args.name,
+            description: args.description,
+            content: args.content,
+            leadId: args.leadId,
+          }
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(updatedProject, null, 2),
             },
           ],
         };

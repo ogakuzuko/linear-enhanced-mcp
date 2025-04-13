@@ -22,7 +22,7 @@ Retrieves a list of labels associated with a team.
 
 ```typescript
 {
-  teamId: string;      // Required: Team ID
+  teamId: string; // Required: Team ID
 }
 ```
 
@@ -58,7 +58,7 @@ Displays a list of workflow states for a specific team.
 
 ```typescript
 {
-  teamId: string;      // Required: Team ID
+  teamId: string; // Required: Team ID
 }
 ```
 
@@ -141,7 +141,45 @@ Gets detailed information about a specific issue.
 
 ```typescript
 {
-  issueId: string;     // Required: Issue ID
+  issueId: string; // Required: Issue ID
+}
+```
+
+#### get_project
+
+Gets detailed information about a specific project, including teams, issues, and members.
+
+```typescript
+{
+  projectId: string; // Required: Project ID
+}
+```
+
+#### create_project
+
+Creates a new project in Linear.
+
+```typescript
+{
+  name: string;          // Required: Project name
+  teamId: string;        // Required: Team ID
+  description?: string;  // Optional: Project description
+  content?: string;      // Optional: Project content in markdown format
+  leadId?: string;       // Optional: Project lead user ID (未指定の場合は自分がリードに設定されます)
+}
+```
+
+#### update_project
+
+Updates an existing project in Linear.
+
+```typescript
+{
+  projectId: string;     // Required: Project ID
+  name?: string;         // Optional: New project name
+  description?: string;  // Optional: New project description
+  content?: string;      // Optional: New project content in markdown format
+  leadId?: string;       // Optional: New project lead user ID
 }
 ```
 
