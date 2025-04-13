@@ -148,9 +148,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description: "Filter by assignee ID (optional)",
             },
-            status: {
+            statusName: {
               type: "string",
-              description: "Filter by status (optional)",
+              description: "Filter by status name (optional)",
+            },
+            statusUUID: {
+              type: "string",
+              description: "Filter by status UUID (optional)",
             },
             first: {
               type: "number",
@@ -454,7 +458,8 @@ type CreateIssueArgs = {
 type ListIssuesArgs = {
   teamId?: string;
   assigneeId?: string;
-  status?: string;
+  statusName?: string;
+  statusUUID?: string;
   first?: number;
 };
 
@@ -574,7 +579,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const filter: Record<string, any> = {};
         if (args?.teamId) filter.team = { id: { eq: args.teamId } };
         if (args?.assigneeId) filter.assignee = { id: { eq: args.assigneeId } };
-        if (args?.status) filter.state = { name: { eq: args.status } };
+        if (args?.statusName) filter.state = { name: { eq: args.statusName } };
+        if (args?.statusUUID) {
+          filter.state = { id: { eq: args.statusUUID } };
+        }
 
         const issues = await linearClient.issues({
           first: args?.first ?? 50,
