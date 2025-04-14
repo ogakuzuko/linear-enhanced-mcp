@@ -237,6 +237,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "number",
               description: "Number of projects to return (default: 50)",
             },
+            projectName: {
+              type: "string",
+              description: "プロジェクト名の部分一致でフィルタリング (optional)",
+            },
           },
         },
       },
@@ -478,6 +482,7 @@ type UpdateIssueArgs = {
 type ListProjectsArgs = {
   teamId?: string;
   first?: number;
+  projectName?: string;
 };
 
 type SearchIssuesArgs = {
@@ -672,6 +677,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const args = request.params.arguments as unknown as ListProjectsArgs;
         const filter: ProjectFilter = {};
         if (args?.teamId) filter.accessibleTeams = { id: { eq: args.teamId } };
+        if (args?.projectName) filter.name = { contains: args.projectName };
 
         const query = await linearClient.projects({
           first: args?.first ?? 50,
@@ -831,46 +837,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             dueDate: issue.dueDate,
             assignee: assignee
               ? {
-                  id: assignee.id,
-                  name: assignee.name,
-                  email: assignee.email,
-                }
+                id: assignee.id,
+                name: assignee.name,
+                email: assignee.email,
+              }
               : null,
             creator: creator
               ? {
-                  id: creator.id,
-                  name: creator.name,
-                  email: creator.email,
-                }
+                id: creator.id,
+                name: creator.name,
+                email: creator.email,
+              }
               : null,
             team: team
               ? {
-                  id: team.id,
-                  name: team.name,
-                  key: team.key,
-                }
+                id: team.id,
+                name: team.name,
+                key: team.key,
+              }
               : null,
             project: project
               ? {
-                  id: project.id,
-                  name: project.name,
-                  state: project.state,
-                }
+                id: project.id,
+                name: project.name,
+                state: project.state,
+              }
               : null,
             parent: parent
               ? {
-                  id: parent.id,
-                  title: parent.title,
-                  identifier: parent.identifier,
-                }
+                id: parent.id,
+                title: parent.title,
+                identifier: parent.identifier,
+              }
               : null,
             cycle:
               cycle && cycle.name
                 ? {
-                    id: cycle.id,
-                    name: cycle.name,
-                    number: cycle.number,
-                  }
+                  id: cycle.id,
+                  name: cycle.name,
+                  number: cycle.number,
+                }
                 : null,
             labels: await Promise.all(
               labels.nodes.map(async (label: any) => ({
