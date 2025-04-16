@@ -130,6 +130,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description: "Parent issue ID (optional)",
             },
+            projectId: {
+              type: "string",
+              description: "Project ID (optional)",
+            },
+            stateId: {
+              type: "string",
+              description: "Status UUID (optional)",
+            },
           },
           required: ["title", "teamId"],
         },
@@ -457,6 +465,8 @@ type CreateIssueArgs = {
   priority?: number;
   labels?: string[];
   parentId?: string;
+  projectId?: string;
+  stateId?: string;
 };
 
 type ListIssuesArgs = {
@@ -551,6 +561,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("Title and teamId are required");
         }
 
+        console.error("Creating issue with args:", args);
+
         // assigneeIdが未指定の場合、現在のユーザーを割り当てる
         let assigneeId = args.assigneeId;
         if (assigneeId === undefined) {
@@ -567,6 +579,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           priority: args.priority,
           labelIds: args.labels,
           parentId: args.parentId,
+          projectId: args.projectId,
+          stateId: args.stateId,
         });
 
         return {
