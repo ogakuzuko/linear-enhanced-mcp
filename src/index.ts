@@ -70,6 +70,7 @@ const baseTools = [
   "get_project",
   "create_project",
   "update_project",
+  "list_project_statuses",
 ];
 baseTools.forEach((tool) => {
   toolsCapabilities[tool] = true;
@@ -459,6 +460,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["projectId"],
+        },
+      },
+      {
+        name: "list_project_statuses",
+        description: "プロジェクトに指定できるステータスの一覧を取得",
+        inputSchema: {
+          type: "object",
+          properties: {},
         },
       },
     ],
@@ -1273,6 +1282,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(updatedProject, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "list_project_statuses": {
+        const statuses = await linearClient.projectStatuses();
+
+        const formattedStatuses = await Promise.all(
+          statuses.nodes.map(async (status) => {
+            return {
+              id: status.id,
+              name: status.name,
+              description: status.description,
+              type: status.type,
+            };
+          })
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(formattedStatuses, null, 2),
             },
           ],
         };

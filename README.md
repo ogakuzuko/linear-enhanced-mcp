@@ -185,6 +185,10 @@ Updates an existing project in Linear.
 }
 ```
 
+#### list_project_statuses
+
+Retrieves a list of available project statuses that can be assigned to projects.
+
 ## Prerequisites
 
 - Node.js (v16 or higher)
