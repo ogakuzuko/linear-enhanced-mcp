@@ -1239,8 +1239,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const project = await linearClient.createProject({
           name: args.name,
           teamIds: [args.teamId],
-          description: args.description || "",
-          content: args.content || "",
+          description: args.description || undefined,
+          content: args.content || undefined,
           leadId: leadId,
           statusId: args.statusId,
         });
@@ -1270,8 +1270,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           args.projectId,
           {
             name: args.name,
-            description: args.description || "",
-            content: args.content || "",
+            description: args.description || undefined,
+            content: args.content || undefined,
             leadId: args.leadId,
             statusId: args.statusId,
           }
@@ -1290,17 +1290,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "list_project_statuses": {
         const statuses = await linearClient.projectStatuses();
 
-        const formattedStatuses = await Promise.all(
-          statuses.nodes.map(async (status) => {
-            return {
-              id: status.id,
-              name: status.name,
-              description: status.description,
-              type: status.type,
-            };
-          })
-        );
-
+        const formattedStatuses = statuses.nodes.map((status) => {
+          return {
+            id: status.id,
+            name: status.name,
+            description: status.description,
+            type: status.type,
+          };
+        });
         return {
           content: [
             {
