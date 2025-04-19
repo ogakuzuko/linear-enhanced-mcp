@@ -166,6 +166,7 @@ Creates a new project in Linear.
   description?: string;  // Optional: Project description
   content?: string;      // Optional: Project content in markdown format
   leadId?: string;       // Optional: Project lead user ID (未指定の場合は自分がリードに設定されます)
+  statusId?: string;     // Optional: Project status ID
 }
 ```
 
@@ -180,6 +181,7 @@ Updates an existing project in Linear.
   description?: string;  // Optional: New project description
   content?: string;      // Optional: New project content in markdown format
   leadId?: string;       // Optional: New project lead user ID
+  statusId?: string;     // Optional: New project status ID
 }
 ```
 

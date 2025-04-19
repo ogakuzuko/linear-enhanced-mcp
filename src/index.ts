@@ -419,6 +419,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 "Project lead user ID (optional, 未指定の場合は自分がリードに設定されます)",
             },
+            statusId: {
+              type: "string",
+              description: "Project status ID (optional)",
+            },
           },
           required: ["name", "teamId"],
         },
@@ -448,6 +452,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             leadId: {
               type: "string",
               description: "New project lead user ID (optional)",
+            },
+            statusId: {
+              type: "string",
+              description: "New project status ID (optional)",
             },
           },
           required: ["projectId"],
@@ -540,6 +548,7 @@ type CreateProjectArgs = {
   description?: string;
   content?: string;
   leadId?: string;
+  statusId?: string;
 };
 
 type UpdateProjectArgs = {
@@ -548,6 +557,7 @@ type UpdateProjectArgs = {
   description?: string;
   content?: string;
   leadId?: string;
+  statusId?: string;
 };
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -1220,9 +1230,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const project = await linearClient.createProject({
           name: args.name,
           teamIds: [args.teamId],
-          description: args.description,
-          content: args.content,
+          description: args.description || "",
+          content: args.content || "",
           leadId: leadId,
+          statusId: args.statusId,
         });
 
         return {
@@ -1250,9 +1261,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           args.projectId,
           {
             name: args.name,
-            description: args.description,
-            content: args.content,
+            description: args.description || "",
+            content: args.content || "",
             leadId: args.leadId,
+            statusId: args.statusId,
           }
         );
 
