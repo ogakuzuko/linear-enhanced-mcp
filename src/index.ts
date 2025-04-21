@@ -1160,10 +1160,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         // 詳細情報を取得
-        const [teams, issues, members] = await Promise.all([
+        const [teams, issues, members, externalLinks] = await Promise.all([
           project.teams(),
           project.issues({ first: 50 }),
           project.members(),
+          project.externalLinks(),
         ]);
 
         // プロジェクトの詳細情報を整形
@@ -1181,14 +1182,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           completedAt: project.completedAt,
           progress: project.progress,
           teams: await Promise.all(
-            teams.nodes.map(async (team: any) => ({
+            teams.nodes.map(async (team) => ({
               id: team.id,
               name: team.name,
               key: team.key,
             }))
           ),
           issues: await Promise.all(
-            issues.nodes.map(async (issue: any) => {
+            issues.nodes.map(async (issue) => {
               const state = await issue.state;
               return {
                 id: issue.id,
@@ -1200,10 +1201,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             })
           ),
           members: await Promise.all(
-            members.nodes.map(async (member: any) => ({
+            members.nodes.map(async (member) => ({
               id: member.id,
               name: member.name,
               displayName: member.displayName,
+            }))
+          ),
+          externalLinks: await Promise.all(
+            externalLinks.nodes.map(async (externalLink) => ({
+              id: externalLink.id,
+              label: externalLink.label,
+              url: externalLink.url,
             }))
           ),
         };
