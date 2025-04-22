@@ -70,6 +70,7 @@ const baseTools = [
   "get_project",
   "create_project",
   "update_project",
+  "list_project_statuses",
 ];
 baseTools.forEach((tool) => {
   toolsCapabilities[tool] = true;
@@ -419,6 +420,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 "Project lead user ID (optional, 未指定の場合は自分がリードに設定されます)",
             },
+            statusId: {
+              type: "string",
+              description: "Project status ID (optional)",
+            },
           },
           required: ["name", "teamId"],
         },
@@ -449,8 +454,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description: "New project lead user ID (optional)",
             },
+            statusId: {
+              type: "string",
+              description: "New project status ID (optional)",
+            },
           },
           required: ["projectId"],
+        },
+      },
+      {
+        name: "list_project_statuses",
+        description: "プロジェクトに指定できるステータスの一覧を取得",
+        inputSchema: {
+          type: "object",
+          properties: {},
         },
       },
     ],
@@ -540,6 +557,7 @@ type CreateProjectArgs = {
   description?: string;
   content?: string;
   leadId?: string;
+  statusId?: string;
 };
 
 type UpdateProjectArgs = {
@@ -548,6 +566,7 @@ type UpdateProjectArgs = {
   description?: string;
   content?: string;
   leadId?: string;
+  statusId?: string;
 };
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -1141,10 +1160,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         // 詳細情報を取得
-        const [teams, issues, members] = await Promise.all([
+        const [teams, issues, members, externalLinks] = await Promise.all([
           project.teams(),
           project.issues({ first: 50 }),
           project.members(),
+          project.externalLinks(),
         ]);
 
         // プロジェクトの詳細情報を整形
@@ -1162,14 +1182,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           completedAt: project.completedAt,
           progress: project.progress,
           teams: await Promise.all(
-            teams.nodes.map(async (team: any) => ({
+            teams.nodes.map(async (team) => ({
               id: team.id,
               name: team.name,
               key: team.key,
             }))
           ),
           issues: await Promise.all(
-            issues.nodes.map(async (issue: any) => {
+            issues.nodes.map(async (issue) => {
               const state = await issue.state;
               return {
                 id: issue.id,
@@ -1181,10 +1201,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             })
           ),
           members: await Promise.all(
-            members.nodes.map(async (member: any) => ({
+            members.nodes.map(async (member) => ({
               id: member.id,
               name: member.name,
               displayName: member.displayName,
+            }))
+          ),
+          externalLinks: await Promise.all(
+            externalLinks.nodes.map(async (externalLink) => ({
+              id: externalLink.id,
+              label: externalLink.label,
+              url: externalLink.url,
             }))
           ),
         };
@@ -1220,9 +1247,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const project = await linearClient.createProject({
           name: args.name,
           teamIds: [args.teamId],
-          description: args.description,
-          content: args.content,
+          description: args.description || undefined,
+          content: args.content || undefined,
           leadId: leadId,
+          statusId: args.statusId,
         });
 
         return {
@@ -1250,9 +1278,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           args.projectId,
           {
             name: args.name,
-            description: args.description,
-            content: args.content,
+            description: args.description || undefined,
+            content: args.content || undefined,
             leadId: args.leadId,
+            statusId: args.statusId,
           }
         );
 
@@ -1261,6 +1290,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(updatedProject, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "list_project_statuses": {
+        const statuses = await linearClient.projectStatuses();
+
+        const formattedStatuses = statuses.nodes.map((status) => {
+          return {
+            id: status.id,
+            name: status.name,
+            description: status.description,
+            type: status.type,
+          };
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(formattedStatuses, null, 2),
             },
           ],
         };
